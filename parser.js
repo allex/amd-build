@@ -35,7 +35,7 @@ function Parser(dir, cachefile) {
         throw Error('The target project directory not exist.');
     }
 
-    this._basedir = dir;
+    this.basedir = dir;
     this._cachefile = cachefile;
     this._cache = {
         version: PARSER_VERSION,
@@ -55,17 +55,17 @@ mixin(Parser.prototype, {
         }
     },
     parse: function() {
-        var base = this._basedir,
-            offset = base.length + 1,
+        var basedir = this.basedir,
+            offset = basedir.length + 1,
             cache = this._cache,
             files = cache.files || (cache.files = {}),
             modules = cache.modules || (cache.modules = {});
 
-        fs.find(this._basedir, {type: 'file', extname: '.js', ignoreRe: /.git|.svn/}).forEach(function(f) {
+        fs.find(basedir, {type: 'file', extname: '.js', ignoreRe: /.git|.svn/}).forEach(function(f) {
             var filename = f.slice(offset), mods = amdutil.parseFile(f);
-            forEach(mods, function(m, k) { m.path = filename; });
+            forEach(mods, function(m, k) { m.file = filename; });
             files[filename] = {
-                path: f,
+                file: filename,
                 modules: Object.keys(mods),
                 hash: fs.sha1sumSync(f),
             };
