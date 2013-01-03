@@ -1,34 +1,15 @@
 /**
  * AMD project module parser
  *
- * @author Allex (allex.wxn@gmail.com)
+ * @author Allex Wang (allex.wxn@gmail.com)
  */
 
 var fs = require('fs-ext'),
     path = require('path'),
+    util = require('./util'),
     amdutil = require('./amdutil');
 
 var PARSER_VERSION = '1.0';
-
-// simple mixin
-function mixin(destination, source) {
-    for (var k in source) {
-        if (source.hasOwnProperty(k)) {
-            destination[k] = source[k];
-        }
-    }
-    return destination;
-}
-
-// generic forEach
-function forEach(o, fn) {
-    if (Array.isArray(o)) return o.forEach(fn);
-    else for (var k in o) {
-        if (o.hasOwnProperty(k)) {
-            fn(o[k], k);
-        }
-    }
-}
 
 function Parser(dir, cachefile) {
     if (!dir || !fs.existsSync(dir)) {
@@ -47,7 +28,7 @@ function Parser(dir, cachefile) {
     this.loadCache();
 }
 
-mixin(Parser.prototype, {
+util.mixin(Parser.prototype, {
     loadCache: function() {
         var cache = this._cache, tmpObj = this.deserialize();
         if (tmpObj && tmpObj.version === cache.version) {
@@ -63,13 +44,13 @@ mixin(Parser.prototype, {
 
         fs.find(basedir, {type: 'file', extname: '.js', ignoreRe: /.git|.svn/}).forEach(function(f) {
             var filename = f.slice(offset), mods = amdutil.parseFile(f);
-            forEach(mods, function(m, k) { m.file = filename; });
+            util.forEach(mods, function(m, k) { m.file = filename; });
             files[filename] = {
                 file: filename,
                 modules: Object.keys(mods),
                 hash: fs.sha1sumSync(f),
             };
-            mixin(modules, mods);
+            util.mixin(modules, mods);
         });
 
         // serialize cache obj to cache file
@@ -82,7 +63,7 @@ mixin(Parser.prototype, {
         if (obj) {
             // normalize modules
             var modules = obj.modules;
-            forEach(modules, function(v, k) {
+            util.forEach(modules, function(v, k) {
                 delete v['ast'];
             });
         }
@@ -98,4 +79,5 @@ mixin(Parser.prototype, {
     }
 });
 
+// Exports
 module.exports = Parser;
