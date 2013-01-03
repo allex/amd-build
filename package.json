@@ -1,0 +1,22 @@
+{
+  "name": "amd-build",
+  "description": "AMD module deploy",
+  "version": "1.0.0",
+  "author": {
+    "name": "Allex Wang",
+    "email": "allex.wxn@gmail.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/allex/amd-build.git"
+  },
+  "engines": [
+    "node >= 0.3.6"
+  ],
+  "dependencies": {
+    "uglify-js": "1.3.x"
+  },
+  "bundleDependencies": [
+  ],
+  "readmeFilename": "README.md"
+}

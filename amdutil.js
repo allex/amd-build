@@ -1,3 +1,8 @@
+/**
+ * AMD module build utilities.
+ *
+ * @author Allex (allex.wxn@gmail.com)
+ */
 var fs = require('fs'),
     uglify = require('uglify-js'),
     pro = uglify.uglify,
@@ -184,10 +189,10 @@ function parseFile(inputFile, charset) {
 
         // depsAst:
         //   [ [ 'string', 'b' ], [ 'string', 'c' ] ]
-        var deps = moduleList[moduleName] || [];
+        var deps = module.deps;
         depsAst.forEach(function(item) {
             if (item[0] === 'string') {
-                module.deps.push(item[1]);
+                deps.push(item[1]);
             }
         });
 
@@ -209,7 +214,7 @@ function parse(inputFile, charset) {
 // Exports
 exports.getAst = getAst;
 
-// amd module parse helper functions
+// AMD module parse helper functions
 exports.parse = parse;
 exports.parseFile = parseFile;
 exports._parseStatic = parseStatic;
