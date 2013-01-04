@@ -6,9 +6,9 @@
 
 var fs = require('fs-x'),
     path = require('path'),
-    util = require('./util'),
-    AMDParser = require('./parser'),
-    compress = require('./compressor');
+    util = require('./lib/util'),
+    AMDParser = require('./lib/parser'),
+    compress = require('./lib/compressor');
 
 function Context(name) {
     this.name = name;
