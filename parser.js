@@ -12,11 +12,15 @@ var fs = require('fs-ext'),
 var PARSER_VERSION = '1.0';
 
 function Parser(dir, cachefile) {
+    // Ensure dir path not end with '/'
+    dir = util.rtrim(dir, path.sep);
+
     if (!dir || !fs.existsSync(dir)) {
         throw Error('The target project directory not exist.');
     }
 
     this.basedir = dir;
+    this.cacheEnabled = !!cachefile;
     this._cachefile = cachefile;
     this._cache = {
         version: PARSER_VERSION,
@@ -25,7 +29,9 @@ function Parser(dir, cachefile) {
         modules: {}
     };
 
-    this.loadCache();
+    if (this.cacheEnabled) {
+        this.loadCache();
+    }
 }
 
 util.mixin(Parser.prototype, {
@@ -53,8 +59,10 @@ util.mixin(Parser.prototype, {
             util.mixin(modules, mods);
         });
 
-        // serialize cache obj to cache file
-        this.serialize(this._cachefile, cache);
+        if (this.cacheEnabled) {
+            // serialize cache obj to cache file
+            this.serialize(this._cachefile, cache);
+        }
 
         return cache;
     },

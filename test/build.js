@@ -6,7 +6,5 @@ var builder = new Build('../../src', 'test/.tmp', {
         'mustache': 'vendor/mustache'
     }
 });
-
 builder.init();
-// console.log(builder.findAllDeps('conf/index'));
 console.log(builder.findAllDepsFiles('conf/index'));
