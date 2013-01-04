@@ -1,6 +1,6 @@
 {
   "name": "amd-build",
-  "description": "AMD module parser",
+  "description": "AMD module parser for project deploy",
   "version": "1.0.0",
   "author": {
     "name": "Allex Wang",
