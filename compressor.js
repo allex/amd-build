@@ -2,7 +2,7 @@
  * JS, CSS compress utilities functions.
  * Provide third-party compress methods, uglifyjs, closure, csscompress
  *
- * @author Allex (allex.wxn@gmail.com)
+ * @author Allex Wang (allex.wxn@gmail.com)
  */
 var fs = require('fs')
   , uglify = require('uglify-js')
@@ -38,7 +38,7 @@ function closure(infile, outfile, callback) {
 
 // uglifyjs parser
 function uglifyjs(file, callback) {
-    exec('uglifyjs --overwrite ' + file, function(err, stdout, stderr) {
+    exec('uglifyjs --ascii --overwrite ' + file, function(err, stdout, stderr) {
         if (err) console.error('uglifyjs:', stderr);
         callback && callback(err, stdout, stderr);
     });
