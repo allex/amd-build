@@ -4,7 +4,7 @@
  * @author Allex Wang (allex.wxn@gmail.com)
  */
 
-var fs = require('fs-ext'),
+var fs = require('fs-x'),
     path = require('path'),
     util = require('./util'),
     amdutil = require('./amdutil');
