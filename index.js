@@ -171,8 +171,11 @@ util.mixin(Build.prototype, {
     },
 
     /**
-     * Get page modules to publish
+     * Returns page module list filter from generic modules `moduleInfo.modules`.
+     * Normally referenced by page entry.
+     *
      * @abstract
+     * @return {Array} The entry module list.
      */
     getPageModules: function() {
         throw Error('getPageModules() not implement');
@@ -206,8 +209,8 @@ util.mixin(Build.prototype, {
             ++totalScore;
         });
 
-        // calc file score
-        var files = this.moduleInfo.files;
+        // count files score order by page modules.
+        var files = me.moduleInfo.files;
         Object.keys(files).forEach(countScore);
 
         var pagefiles, l, file, globals = [];
@@ -252,11 +255,11 @@ util.mixin(Build.prototype, {
         (function next() {
             var f = files.pop();
             if (f) {
-				var filename = path.basename(f), dir = path.dirname(f), newfile = path.resolve(dir, filename + '.min');
+                var filename = path.basename(f), dir = path.dirname(f), newfile = path.resolve(dir, filename + '.min');
                 if (!fs.existsSync(dir)) { fs.mkdirSync(dir); }
                 compress.compressjs(f, newfile, function() {
-					fs.rmSync(f);
-					fs.renameSync(newfile, f);
+                    fs.rmSync(f);
+                    fs.renameSync(newfile, f);
                     console.log('Build ' + f);
                     next();
                 });
