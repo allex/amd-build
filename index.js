@@ -74,7 +74,7 @@ function Build(srcDir, distDir, options) {
 
 util.mixin(Build.prototype, {
     init: function() {
-        this.moduleInfo = (new AMDParser(this.srcDir, this.cacheEnabled ? this.distDir + '/cache.json' : null)).parse();
+        this.moduleInfo = (new AMDParser(this.srcDir, this.cacheEnabled ? this.distDir + '/.cache.json' : null)).parse();
     },
     getModuleConfig: function(moduleName) {
         moduleName = this.resolveModule(moduleName);
