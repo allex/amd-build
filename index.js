@@ -6,18 +6,44 @@
 
 var fs = require('fs-x'),
     path = require('path'),
-    util = require('./lib/util'),
+    lang = require('lang-ext'),
+    array = require('lang-ext/array'),
     AMDParser = require('./lib/parser'),
-    compress = require('./lib/compressor');
+    compress = require('jscss-compressor');
 
-function Context(name) {
+/**
+ * AttributeCore provides the lightest level of configurable attribute support. It is designed to be 
+ * augmented on to a host class, and provides the host with the ability to configure 
+ * attributes to store and retrieve state, <strong>but without support for attribute change events</strong>.
+ *
+ * @constructor
+ * @private
+ */
+var Attribute = function(attrs, values) {
+    this._attrData = {};
+};
+Attribute.prototype = {
+    get: function(key) {
+        return this._attrData[key];
+    },
+    set: function(key, value) {
+        this._attrData[key] = value;
+    }
+};
+
+/**
+ * AMD context modal. for amd dependences collection manage.
+ *
+ * @constructor
+ * @private
+ */
+var Context = function(name) {
     this.name = name;
     this.length = 0;
     this._list = [];
     this._hash = {};
-}
-
-util.mixin(Context.prototype, {
+};
+Context.prototype = {
     get: function(name) {
         return this._hash[name] || null;
     },
@@ -47,91 +73,114 @@ util.mixin(Context.prototype, {
     getDeps: function() {
         return this._list;
     }
-});
+};
 
-function Build(srcDir, distDir, options) {
-    if (!srcDir || !fs.existsSync(srcDir)) {
+/**
+ * Base class for project build extends.
+ *
+ * @class Build
+ * @constructor
+ * @author Allex Wang (allex.wxn@gmail.com)
+ */
+function Build(basepath, distpath, options) {
+    if (!basepath || !fs.existsSync(basepath)) {
         throw Error('Source directory is not exist.');
     }
-    if (!distDir) {
-        throw Error('Dist directory not set.');
+    if (!distpath) {
+        throw Error('Output path directory not valid.');
     }
 
-    options = options || {};
-
-    this.srcDir = srcDir;
-    this.distDir = distDir;
-    this.aliases = options.aliases || {};
-    this.globalModule = 'lib/r.core';
-    this.reserveModules = ['global', 'require', 'exports', 'module'];
-
-    if (!fs.existsSync(distDir)) {
-        fs.mkdirSync(distDir);
+    // Ensure output dir exist.
+    if (!fs.existsSync(distpath)) {
+        fs.mkdirSync(distpath);
     }
-    this.moduleInfo = {};
-    this.cacheEnabled = options.cache;
+
+    // Merge defaults options.
+    options = lang.merge(options, {
+        cache: false,
+        aliases: {},
+        globalModuleName: 'r.core'
+    });
+
+    this.basepath = basepath;
+    this.distpath = distpath;
+
+    this.aliases = options.aliases;
+    this.globalModuleName = options.globalModuleName;
+
+    var reserveModules = ['global', 'require', 'exports', 'module'], reserves = options.reserveModules;
+    if (reserves && reserves.length) {
+        reserveModules = array.unique(reserveModules.concat(reserves));
+    }
+    this.reserveModules = reserveModules;
+
+    var parser = new AMDParser(basepath, options.cache ? distpath + '/.cache.json' : null);
+    this.moduleInfo = parser.parse();
 }
 
-util.mixin(Build.prototype, {
-    init: function() {
-        this.moduleInfo = (new AMDParser(this.srcDir, this.cacheEnabled ? this.distDir + '/.cache.json' : null)).parse();
-    },
-    getModuleConfig: function(moduleName) {
-        moduleName = this.resolveModule(moduleName);
-        var conf = this.moduleInfo.modules[moduleName];
-        if (!conf) {
-            throw Error('module (name="' + moduleName + '") not exists.');
-        }
-        return conf;
-    },
-    /**
-     * Find the specified module all dependences.
+lang.mix(Build.prototype, {
+
+    /*
+     * Get the dependences of a specified module.
      *
+     * @public
+     * @method getDeps
+     * @param {String} moduleName The module name to process.
+     * @return {Array} The duplicate reference of dependences list.
+     */
+    getDeps: function(moduleName) {
+        return this._getModuleInfo(moduleName).deps.concat();
+    },
+
+    /**
+     * Find all dependences list of the specified module.
+     *
+     * @public
      * @param {String} moduleName The module name to process.
      * @return {Array} Returns all of the dependences module list.
      */
     findAllDeps: function(moduleName) {
         moduleName = this.resolveModule(moduleName);
-        var me = this,
-            conf = me.getModuleConfig(moduleName),
-            context = new Context(moduleName),
-            deps = conf.deps.slice(),
-            reserveModules = me.reserveModules,
-            exists = function(name) {
-                return context.has(name) || reserveModules.indexOf(name) > -1;
-            };
 
-        if (!exists(moduleName)) {
-            context.push(moduleName);
-        }
+        var me = this,
+            context = new Context(moduleName),
+            deps = me.getDeps(moduleName),
+            reserveModules = me.reserveModules,
+            exists = function(name) { return context.has(name) || reserveModules.indexOf(name) > -1; };
+
         (function process(deps) {
             if (deps.length) {
-                var name = deps.shift(), conf;
+                var name = deps.shift(), subDeps;
                 if (!exists(name)) {
                     name = me.resolveModule(name);
                     context.push(name);
                     // process submodule dependences in recursion
-                    conf = me.getModuleConfig(name);
-                    conf.deps.forEach(function(name) {
-                        if (!exists(name)) {
-                            deps.push(name);
-                        }
+                    subDeps = me.getDeps(name);
+                    subDeps.forEach(function(n) {
+                        if (!exists(n)) { deps.push(n); }
                     });
                 }
                 process(deps);
             }
         })(deps);
 
+        if (!exists(moduleName)) {
+            context.push(moduleName);
+        }
+
         return context.getDeps();
     },
+
     /**
-     * Find the specified module all dependences files.
+     * Find all dependences files of the specified module.
      *
+     * @public
      * @param {String} moduleName The module name to process.
      * @return {Array} Returns all of the dependences file list.
      */
     findAllDepsFiles: function(moduleName) {
-        var files = {}, list = [], deps = this.findAllDeps(moduleName), moduleInfo = this.moduleInfo.modules, l = deps.length, file;
+        var me = this, files = {}, list = [], deps = me.findAllDeps(moduleName), moduleInfo = me.moduleInfo.modules, l = deps.length, file;
+
         // list the files in FILO
         while (l--) {
             var file = (moduleInfo[deps[l]] || 0).file;
@@ -140,8 +189,23 @@ util.mixin(Build.prototype, {
                 list.push(file);
             }
         }
+
+        // pop the global module to the head;
+        var globalModuleName = me.globalModuleName;
+        if (globalModuleName) {
+            var l = list.length, n;
+            while (l--) {
+                n = list[l];
+                if (n.indexOf(globalModuleName) !== -1) {
+                    list.splice(l, 1); list.unshift(n);
+                    break;
+                }
+            }
+        }
+
         return list;
     },
+
     /**
      * Resolve module name by aliases.
      */
@@ -157,6 +221,7 @@ util.mixin(Build.prototype, {
         }
         throw Error('module (name="' + moduleName + '") cannot be resolved.');
     },
+
     /**
      * Resolve module file path by the module name defined.
      *
@@ -171,24 +236,13 @@ util.mixin(Build.prototype, {
     },
 
     /**
-     * Returns page module list filter from generic modules `moduleInfo.modules`.
-     * Normally referenced by page entry.
-     *
-     * @abstract
-     * @return {Array} The entry module list.
-     */
-    getPageModules: function() {
-        throw Error('getPageModules() not implement');
-    },
-
-    /**
-     * Anylize page modules to publish.
+     * Parse page main modules.
      *
      * @return {Object} The page module maps
      * { name: ['abc/modue', 'foo/module'], ... }
      */
-    anylizePageFiles: function() {
-        var me = this, pageModules = me.getPageModules(), map = {}, filesRate = {}, totalScore = 0;
+    parseMainModules: function() {
+        var me = this, pageModules = me._getPageModules(), map = {}, filesRate = {}, totalScore = 0;
 
         function countScore(file) {
             var pagefiles;
@@ -228,29 +282,73 @@ util.mixin(Build.prototype, {
             }
         }
 
-        globals = util.unique(globals).sort();
+        globals = array.unique(globals).sort();
 
-        var globalModule = me.globalModule, corejs = globalModule + '.js', index = globals.indexOf(corejs);
+        var globalModuleName = me.globalModuleName, corejs = globalModuleName + '.js', index = globals.indexOf(corejs);
         if (index !== -1) {
             // move r.core.js to top
             globals.splice(index, 1);
             globals.unshift(corejs);
         }
-        map[globalModule] = globals;
+        map[globalModuleName] = globals;
 
         return map;
     },
 
+    combineFiles: function(files, outfile, callback) {
+        files = files.concat();
+
+        var basepath = this.basepath, distpath = this.distpath, tmpdir = distpath + '/.tmp';
+        var seedfiles = [];
+
+        // compile js
+        (function next() {
+            var f = files.shift(), distfile;
+            if (f) {
+                f = path.join(basepath, f); // source file
+                distfile = path.join(tmpdir, f); // dist file
+
+                if (!fs.existsSync(f)) {
+                    next();
+                    console.error('file (' + f + ') not exists. [IGNORED]');
+                    return;
+                }
+
+                // cache distfile list
+                seedfiles.push(distfile);
+
+                if (fs.existsSync(distfile)) {
+                    next();
+                    return;
+                }
+
+                var dir = path.dirname(distfile);
+                if (!fs.existsSync(dir)) {
+                    fs.mkdirSync(dir);
+                }
+
+                console.log('Compress:', f, '==>', distfile);
+                compress.compressjs(f, distfile, function() { next(); });
+            }
+            else {
+                fs.combineSync(seedfiles, outfile);
+                if (callback) {
+                    callback();
+                }
+            }
+        }());
+    },
+
     combineModules: function(maps) {
-        var srcDir = this.srcDir, distDir = this.distDir;
-        var resolvePath = function(name) { return path.join(srcDir, name); };
-        util.forEach(maps, function(files, distName) {
-            fs.combineSync(files.map(resolvePath), path.join(distDir, distName + '.js'));
+        var basepath = this.basepath, distpath = this.distpath;
+        var resolvePath = function(name) { return path.join(basepath, name); };
+        lang.forEach(maps, function(files, distName) {
+            fs.combineSync(files.map(resolvePath), path.join(distpath, distName + '.js'));
         });
     },
 
     compilerDist: function(callback) {
-        var files = fs.find(this.distDir, {type: 'file', extname: '.js'});
+        var files = fs.find(this.distpath, {type: 'file', extname: '.js'});
         // compile js
         (function next() {
             var f = files.pop();
@@ -267,6 +365,36 @@ util.mixin(Build.prototype, {
                 callback && callback();
             }
         })();
+    },
+
+    /**
+     * Returns page module list filter from generic modules `moduleInfo.modules`.
+     * Normally referenced by page entry.
+     *
+     * @private
+     * @return {Array} The entry module list.
+     */
+    _getPageModules: function() {
+        var list = this.moduleInfo.modules, filterFn = this.get('pageModuleFilter');
+        if (typeof filterFn !== 'function') {
+            throw Error('pageModuleFilter not a valid filter function');
+        }
+        return list.filter(filterFn);
+    },
+
+    /**
+     * Get the specified module configuration info.
+     *
+     * @method _getModuleInfo
+     * @private
+     */
+    _getModuleInfo: function(moduleName) {
+        moduleName = this.resolveModule(moduleName);
+        var conf = this.moduleInfo.modules[moduleName];
+        if (!conf) {
+            throw Error('module (name="' + moduleName + '") not exists.');
+        }
+        return conf;
     }
 });
 

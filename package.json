@@ -1,7 +1,7 @@
 {
   "name": "amd-build",
   "description": "AMD module parser for project deploy",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "author": {
     "name": "Allex Wang",
     "email": "allex.wxn@gmail.com"
@@ -14,14 +14,16 @@
     "url": "https://github.com/allex/amd-build/issues"
   },
   "engines": [
-    "node >= 0.3.6"
+    "node >= 0.8.1"
   ],
   "main": "./index.js",
   "dependencies": {
+    "lang-ext": "1.0.1",
     "fs-x": "1.0.x",
-    "uglify-js": "1.3.x"
+    "uglify-js": "*",
+    "html-minifier": "*"
   },
-  "bundleDependencies": [
-  ],
+  "devDependencies": {},
+  "bundleDependencies": [],
   "readmeFilename": "README.md"
 }
