@@ -18,10 +18,10 @@
   ],
   "main": "./index.js",
   "dependencies": {
-    "lang-ext": "1.0.1",
-    "fs-x": "1.0.x",
+    "lang-ext": "1.0.2",
+    "fs-x": "1.0.1",
     "uglify-js": "*",
-    "html-minifier": "*"
+    "html-compressor": "git://github.com/allex/html-compressor.git#dist"
   },
   "devDependencies": {},
   "bundleDependencies": [],

@@ -9,7 +9,7 @@ var fs = require('fs-x'),
     lang = require('lang-ext'),
     array = require('lang-ext/array'),
     AMDParser = require('./lib/parser'),
-    compress = require('jscss-compressor');
+    compressor = require('./lib/compressor');
 
 /**
  * AttributeCore provides the lightest level of configurable attribute support. It is designed to be 
@@ -328,7 +328,7 @@ lang.mix(Build.prototype, {
                 }
 
                 console.log('Compress:', f, '==>', distfile);
-                compress.compressjs(f, distfile, function() { next(); });
+                compressor.compressjs(f, distfile, function() { next(); });
             }
             else {
                 fs.combineSync(seedfiles, outfile);
@@ -355,7 +355,7 @@ lang.mix(Build.prototype, {
             if (f) {
                 var filename = path.basename(f), dir = path.dirname(f), newfile = path.resolve(dir, filename + '.min');
                 if (!fs.existsSync(dir)) { fs.mkdirSync(dir); }
-                compress.compressjs(f, newfile, function() {
+                compressor.compressjs(f, newfile, function() {
                     fs.rmSync(f);
                     fs.renameSync(newfile, f);
                     console.log('Build ' + f);
