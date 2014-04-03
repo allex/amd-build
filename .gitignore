@@ -2,3 +2,4 @@
 .vim
 .tmp
 node_modules/
+test/

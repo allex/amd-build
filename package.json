@@ -21,6 +21,10 @@
     "lang-ext": "1.0.2",
     "fs-x": "1.0.1",
     "uglify-js": "*",
+    "esprima": "1.x.x",
+    "through": "*",
+    "estraverse": "*",
+    "escodegen": "*"
     "html-compressor": "git://github.com/allex/html-compressor.git#dist"
   },
   "devDependencies": {},
